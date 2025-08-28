@@ -178,9 +178,9 @@
                 <p>Currently valid tokens</p>
             </div>
             <div class="stat-card">
-                <h3>📱 Last Updated</h3>
-                <div class="stat-number" id="lastUpdate">-</div>
-                <p>Most recent activity</p>
+                <h3>🚨 Duplicate Check</h3>
+                <div class="stat-number" id="duplicateCount">-</div>
+                <p>Potential duplicates today</p>
             </div>
         </div>
 
@@ -192,6 +192,17 @@
             <button class="btn" onclick="generateNewQR()">🔄 Generate New QR Code</button>
             <button class="btn" onclick="clearOldRecords()">🗑️ Clear Old Records</button>
             <a href="/" class="btn">🏠 Go to Main Page</a>
+        </div>
+
+        <!-- Security Monitoring -->
+        <div class="actions" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+            <h3>🚨 Security Monitoring</h3>
+            <p style="margin: 10px 0; color: #856404;">
+                <strong>Duplicate Detection:</strong> This system tracks QR tokens to identify potential duplicate submissions.<br>
+                <strong>Device Tracking:</strong> Each QR code can only be used once, preventing multiple submissions.
+            </p>
+            <button class="btn btn-warning" onclick="checkDuplicates()">🔍 Check for Duplicates</button>
+            <button class="btn" onclick="exportSecurityReport()">📊 Export Security Report</button>
         </div>
 
         <!-- QR Code Section -->
@@ -228,18 +239,40 @@
                 const csvText = await response.text();
                 const lines = csvText.split('\n');
                 
-                // Count today's attendance
+                // Count today's attendance and check for duplicates
                 const today = new Date().toISOString().split('T')[0];
                 let todayCount = 0;
                 let totalCount = Math.max(0, lines.length - 2); // Subtract header and empty line
+                let duplicateCount = 0;
+                
+                // Track tokens used today
+                const todayTokens = new Set();
+                const todayStudents = new Set();
                 
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim()) {
                         const parts = lines[i].split(',');
-                        if (parts.length >= 4) {
+                        if (parts.length >= 5) { // Now we have 5 columns including QR Token
                             const timestamp = parts[3];
+                            const token = parts[4];
+                            const studentId = parts[2];
+                            
                             if (timestamp.includes(today)) {
                                 todayCount++;
+                                
+                                // Check for duplicate tokens (same QR code used multiple times)
+                                if (todayTokens.has(token)) {
+                                    duplicateCount++;
+                                } else {
+                                    todayTokens.add(token);
+                                }
+                                
+                                // Check for duplicate student IDs (same student multiple times today)
+                                if (todayStudents.has(studentId)) {
+                                    duplicateCount++;
+                                } else {
+                                    todayStudents.add(studentId);
+                                }
                             }
                         }
                     }
@@ -247,7 +280,7 @@
                 
                 document.getElementById('todayCount').textContent = todayCount;
                 document.getElementById('totalCount').textContent = totalCount;
-                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                document.getElementById('duplicateCount').textContent = duplicateCount;
                 
                 // Get active tokens count (this would need a new endpoint)
                 document.getElementById('activeTokens').textContent = 'N/A';
@@ -256,6 +289,7 @@
                 console.error('Error loading stats:', error);
                 document.getElementById('todayCount').textContent = 'Error';
                 document.getElementById('totalCount').textContent = 'Error';
+                document.getElementById('duplicateCount').textContent = 'Error';
             }
         }
 
@@ -359,6 +393,35 @@
             setTimeout(() => {
                 messageDiv.remove();
             }, 3000);
+        }
+
+        // Check for duplicates
+        function checkDuplicates() {
+            loadStats();
+            loadAttendanceTable();
+            showMessage('Duplicate check completed! Check the statistics above.', 'success');
+        }
+
+        // Export security report
+        function exportSecurityReport() {
+            const today = new Date().toISOString().split('T')[0];
+            const reportData = `Security Report - ${today}\n` +
+                             `Generated: ${new Date().toLocaleString()}\n` +
+                             `Today's Attendance: ${document.getElementById('todayCount').textContent}\n` +
+                             `Total Records: ${document.getElementById('totalCount').textContent}\n` +
+                             `Potential Duplicates: ${document.getElementById('duplicateCount').textContent}\n\n` +
+                             `Note: This report shows potential security issues.\n` +
+                             `Check the attendance table for detailed analysis.`;
+            
+            const blob = new Blob([reportData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `security_report_${today}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('Security report exported successfully!', 'success');
         }
 
         // Auto-refresh every 30 seconds

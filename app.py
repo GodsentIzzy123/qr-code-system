@@ -22,16 +22,17 @@ def ensure_csv():
     if not file_exists or os.path.getsize(ATTENDANCE_FILE) == 0:
         with open(ATTENDANCE_FILE, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
-            writer.writerow(["First Name", "Last Name", "Student ID", "Timestamp"])
+            writer.writerow(["First Name", "Last Name", "Student ID", "Timestamp", "QR Token"])
 
-def save_attendance(first_name, last_name, student_id):
+def save_attendance(first_name, last_name, student_id, token):
     with open(ATTENDANCE_FILE, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow([
             first_name,
             last_name,
             student_id,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            token
         ])
 
 def has_today_attendance(student_id):
@@ -120,7 +121,7 @@ def mark_attendance():
     if has_today_attendance(student_id):
         return jsonify({"status": "error", "message": "Attendance already recorded today"}), 409
 
-    save_attendance(first_name, last_name, student_id)
+    save_attendance(first_name, last_name, student_id, token)
     return jsonify({"status": "success", "message": f"Attendance marked for {first_name} {last_name}"}), 200
 
 @app.route('/attendance.csv', methods=['GET'])
