@@ -168,26 +168,48 @@
                 <p>Students who attended today</p>
             </div>
             <div class="stat-card">
-                <h3>👥 Total Records</h3>
+                <h3>📊 This Week</h3>
+                <div class="stat-number" id="weekCount">-</div>
+                <p>Total this week</p>
+            </div>
+            <div class="stat-card">
+                <h3>🗓️ This Month</h3>
+                <div class="stat-number" id="monthCount">-</div>
+                <p>Total this month</p>
+            </div>
+            <div class="stat-card">
+                <h3>👥 All Time</h3>
                 <div class="stat-number" id="totalCount">-</div>
-                <p>All attendance records</p>
+                <p>Total records</p>
             </div>
-            <div class="stat-card">
-                <h3>🔑 Active QR Codes</h3>
-                <div class="stat-number" id="activeTokens">-</div>
-                <p>Currently valid tokens</p>
-            </div>
-            <div class="stat-card">
-                <h3>🚨 Duplicate Check</h3>
-                <div class="stat-number" id="duplicateCount">-</div>
-                <p>Potential duplicates today</p>
+        </div>
+
+        <!-- Date Management -->
+        <div class="actions" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+            <h3>🗓️ Date Management</h3>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin: 15px 0;">
+                <div>
+                    <label for="dateSelector" style="font-weight: bold; display: block; margin-bottom: 5px;">Select Date:</label>
+                    <input type="date" id="dateSelector" onchange="loadDateData()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label for="dateRange" style="font-weight: bold; display: block; margin-bottom: 5px;">Date Range:</label>
+                    <select id="dateRange" onchange="loadDateRangeData()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="exportDateData()">📥 Export Selected Data</button>
             </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="actions">
             <h3>🛠️ Quick Actions</h3>
-            <button class="btn btn-success" onclick="downloadCSV()">📥 Download CSV</button>
+            <button class="btn btn-success" onclick="downloadCSV()">📥 Download Full CSV</button>
             <button class="btn btn-warning" onclick="refreshData()">🔄 Refresh Data</button>
             <button class="btn" onclick="generateNewQR()">🔄 Generate New QR Code</button>
             <button class="btn" onclick="clearOldRecords()">🗑️ Clear Old Records</button>
@@ -215,6 +237,14 @@
             <button class="refresh-btn" onclick="refreshQR()">🔄 Refresh QR Code</button>
         </div>
 
+        <!-- Daily Summary -->
+        <div class="attendance-table" style="background: #f8f9fa;">
+            <h3>📊 Daily Summary</h3>
+            <div id="dailySummaryContainer">
+                <div class="loading">Loading daily summary...</div>
+            </div>
+        </div>
+
         <!-- Attendance Records Table -->
         <div class="attendance-table">
             <h3>📋 Attendance Records</h3>
@@ -227,7 +257,12 @@
     <script>
         // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateSelector').value = today;
+            
             loadStats();
+            loadDailySummary();
             loadAttendanceTable();
             loadQRCode();
         });
@@ -239,57 +274,54 @@
                 const csvText = await response.text();
                 const lines = csvText.split('\n');
                 
-                // Count today's attendance and check for duplicates
+                // Count attendance by different time periods
                 const today = new Date().toISOString().split('T')[0];
-                let todayCount = 0;
-                let totalCount = Math.max(0, lines.length - 2); // Subtract header and empty line
-                let duplicateCount = 0;
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+                const weekStartStr = weekStart.toISOString().split('T')[0];
                 
-                // Track tokens used today
-                const todayTokens = new Set();
-                const todayStudents = new Set();
+                const monthStart = new Date();
+                monthStart.setDate(1); // Start of month
+                const monthStartStr = monthStart.toISOString().split('T')[0];
+                
+                let todayCount = 0;
+                let weekCount = 0;
+                let monthCount = 0;
+                let totalCount = Math.max(0, lines.length - 2); // Subtract header and empty line
                 
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim()) {
                         const parts = lines[i].split(',');
-                        if (parts.length >= 5) { // Now we have 5 columns including QR Token
+                        if (parts.length >= 5) {
                             const timestamp = parts[3];
-                            const token = parts[4];
-                            const studentId = parts[2];
+                            const recordDate = timestamp.split(' ')[0]; // Extract date part
                             
-                            if (timestamp.includes(today)) {
+                            if (recordDate === today) {
                                 todayCount++;
-                                
-                                // Check for duplicate tokens (same QR code used multiple times)
-                                if (todayTokens.has(token)) {
-                                    duplicateCount++;
-                                } else {
-                                    todayTokens.add(token);
-                                }
-                                
-                                // Check for duplicate student IDs (same student multiple times today)
-                                if (todayStudents.has(studentId)) {
-                                    duplicateCount++;
-                                } else {
-                                    todayStudents.add(studentId);
-                                }
+                            }
+                            
+                            if (recordDate >= weekStartStr) {
+                                weekCount++;
+                            }
+                            
+                            if (recordDate >= monthStartStr) {
+                                monthCount++;
                             }
                         }
                     }
                 }
                 
                 document.getElementById('todayCount').textContent = todayCount;
+                document.getElementById('weekCount').textContent = weekCount;
+                document.getElementById('monthCount').textContent = monthCount;
                 document.getElementById('totalCount').textContent = totalCount;
-                document.getElementById('duplicateCount').textContent = duplicateCount;
-                
-                // Get active tokens count (this would need a new endpoint)
-                document.getElementById('activeTokens').textContent = 'N/A';
                 
             } catch (error) {
                 console.error('Error loading stats:', error);
                 document.getElementById('todayCount').textContent = 'Error';
+                document.getElementById('weekCount').textContent = 'Error';
+                document.getElementById('monthCount').textContent = 'Error';
                 document.getElementById('totalCount').textContent = 'Error';
-                document.getElementById('duplicateCount').textContent = 'Error';
             }
         }
 
@@ -422,6 +454,108 @@
             URL.revokeObjectURL(url);
             
             showMessage('Security report exported successfully!', 'success');
+        }
+
+        // Load daily summary
+        async function loadDailySummary() {
+            try {
+                const response = await fetch('/attendance.csv');
+                const csvText = await response.text();
+                const lines = csvText.split('\n');
+                
+                if (lines.length <= 1) {
+                    document.getElementById('dailySummaryContainer').innerHTML = '<p>No attendance records found.</p>';
+                    return;
+                }
+                
+                // Group records by date
+                const dateGroups = {};
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim()) {
+                        const parts = lines[i].split(',');
+                        if (parts.length >= 5) {
+                            const timestamp = parts[3];
+                            const date = timestamp.split(' ')[0];
+                            
+                            if (!dateGroups[date]) {
+                                dateGroups[date] = [];
+                            }
+                            dateGroups[date].push({
+                                firstName: parts[0],
+                                lastName: parts[1],
+                                studentId: parts[2],
+                                time: timestamp.split(' ')[1],
+                                token: parts[4]
+                            });
+                        }
+                    }
+                }
+                
+                // Create summary table
+                let summaryHTML = '<table style="width: 100%; margin-top: 15px;"><thead><tr><th>Date</th><th>Attendance Count</th><th>First Student</th><th>Last Student</th><th>Actions</th></tr></thead><tbody>';
+                
+                const sortedDates = Object.keys(dateGroups).sort().reverse(); // Most recent first
+                
+                sortedDates.forEach(date => {
+                    const records = dateGroups[date];
+                    const firstStudent = records[0];
+                    const lastStudent = records[records.length - 1];
+                    
+                    summaryHTML += `<tr>
+                        <td><strong>${date}</strong></td>
+                        <td><span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${records.length}</span></td>
+                        <td>${firstStudent.firstName} ${firstStudent.lastName}</td>
+                        <td>${lastStudent.firstName} ${lastStudent.lastName}</td>
+                        <td>
+                            <button onclick="viewDateDetails('${date}')" style="background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">View</button>
+                            <button onclick="exportDateCSV('${date}')" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;">Export</button>
+                        </td>
+                    </tr>`;
+                });
+                
+                summaryHTML += '</tbody></table>';
+                document.getElementById('dailySummaryContainer').innerHTML = summaryHTML;
+                
+            } catch (error) {
+                console.error('Error loading daily summary:', error);
+                document.getElementById('dailySummaryContainer').innerHTML = '<div class="error">Error loading daily summary</div>';
+            }
+        }
+
+        // Load data for specific date
+        function loadDateData() {
+            const selectedDate = document.getElementById('dateSelector').value;
+            if (selectedDate) {
+                loadAttendanceTable(selectedDate);
+            }
+        }
+
+        // Load data for date range
+        function loadDateRangeData() {
+            const range = document.getElementById('dateRange').value;
+            loadAttendanceTable(null, range);
+        }
+
+        // Export data for specific date
+        function exportDateData() {
+            const selectedDate = document.getElementById('dateSelector').value;
+            if (selectedDate) {
+                // This would need backend implementation for date-specific CSV export
+                showMessage('Date-specific export would need backend implementation', 'warning');
+            }
+        }
+
+        // View details for specific date
+        function viewDateDetails(date) {
+            document.getElementById('dateSelector').value = date;
+            loadDateData();
+            showMessage(`Showing details for ${date}`, 'success');
+        }
+
+        // Export CSV for specific date
+        function exportDateCSV(date) {
+            // This would need backend implementation for date-specific CSV export
+            showMessage(`Export for ${date} would need backend implementation`, 'warning');
         }
 
         // Auto-refresh every 30 seconds
