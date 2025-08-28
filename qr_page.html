@@ -44,15 +44,17 @@
 </head>
 <body>
     <h1>📱 Attendance QR Code</h1>
+    <p style="margin: 10px 0; color: #666;">
+        <a href="/admin" style="color: #007bff; text-decoration: none;">🔐 Admin Dashboard</a> | 
+        <a href="/" style="color: #007bff; text-decoration: none;">🏠 Main Page</a>
+    </p>
     
     <div class="instructions">
-        <h3>How to mark your attendance:</h3>
-        <ol style="text-align: left;">
-            <li>Scan this QR code with your phone's camera</li>
-            <li>Copy the token (text) from the QR code</li>
-            <li>Send a POST request to: <code>http://127.0.0.1:5000/mark_attendance</code></li>
-            <li>Include your details: first_name, last_name, student_id, and the token</li>
-        </ol>
+        <h3>🎯 Simple Attendance Process:</h3>
+        <p style="margin: 10px 0; font-size: 16px;">
+            Students just need to <strong>scan the QR code</strong> with their phone camera.<br>
+            The QR code will automatically open a mobile-friendly form on their phone.
+        </p>
     </div>
 
     <div class="qr-container">
@@ -62,49 +64,19 @@
         <button class="refresh-btn" onclick="refreshQR()">🔄 Generate New QR Code</button>
     </div>
 
-        <div class="instructions">
-        <h3>📱 How to Submit Attendance:</h3>
-        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <h4>Option 1: Scan QR Code (Opens Mobile Form)</h4>
-            <p>Scan the QR code with your phone camera. It should open a mobile-friendly form directly on your phone.</p>
-            
-            <h4>Option 2: Use This Page on Your Phone</h4>
-            <p>Students can visit this page directly on their phones and use the form below.</p>
-        </div>
-        
-        <form id="attendanceForm" style="text-align: left;">
-            <div style="margin: 10px 0;">
-                <label for="firstName">First Name:</label><br>
-                <input type="text" id="firstName" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your first name">
-            </div>
-            <div style="margin: 10px 0;">
-                <label for="lastName">Last Name:</label><br>
-                <input type="text" id="lastName" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your last name">
-            </div>
-            <div style="margin: 10px 0;">
-                <label for="studentId">Student ID:</label><br>
-                <input type="text" id="studentId" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your student ID">
-            </div>
-            <div style="margin: 10px 0;">
-                <label for="token">QR Token (from phone scan):</label><br>
-                <input type="text" id="token" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Paste the token from your phone">
-            </div>
-            <button type="submit" style="background: #28a745; color: white; padding: 15px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; width: 100%;">✅ Mark Attendance</button>
-        </form>
-        <div id="result" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
-    </div>
-
     <div class="instructions">
-        <h3>📋 Manual API Call (for developers):</h3>
-        <pre style="background: #333; color: #fff; padding: 10px; border-radius: 5px; text-align: left; font-size: 12px;">
-curl -X POST http://127.0.0.1:5000/mark_attendance \
-  -H "Content-Type: application/json" \
-  -d '{
-    "first_name": "John",
-    "last_name": "Doe", 
-    "student_id": "S12345",
-    "token": "SCANNED_TOKEN_HERE"
-  }'</pre>
+        <h3>📱 How Students Mark Attendance:</h3>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <h4>🎯 Simple Process:</h4>
+            <ol style="text-align: left; margin: 10px 0;">
+                <li><strong>Scan the QR code</strong> with your phone camera</li>
+                <li><strong>Fill in your details</strong> on the mobile form that opens</li>
+                <li><strong>Submit</strong> - that's it!</li>
+            </ol>
+            <p style="margin: 10px 0; font-weight: bold; color: #007bff;">
+                ✨ No need to copy tokens or use complex forms - just scan and submit!
+            </p>
+        </div>
     </div>
 
     <script>
@@ -115,52 +87,6 @@ curl -X POST http://127.0.0.1:5000/mark_attendance \
         
         // Auto-refresh QR code every 2 minutes
         setInterval(refreshQR, 120000);
-
-        // Handle form submission
-        document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = {
-                first_name: document.getElementById('firstName').value,
-                last_name: document.getElementById('lastName').value,
-                student_id: document.getElementById('studentId').value,
-                token: document.getElementById('token').value
-            };
-            
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '⏳ Submitting attendance...';
-            resultDiv.style.background = '#fff3cd';
-            resultDiv.style.color = '#856404';
-            
-            try {
-                const response = await fetch('/mark_attendance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    resultDiv.style.background = '#d4edda';
-                    resultDiv.style.color = '#155724';
-                    resultDiv.innerHTML = `✅ ${data.message}`;
-                    // Clear form on success
-                    document.getElementById('attendanceForm').reset();
-                } else {
-                    resultDiv.style.background = '#f8d7da';
-                    resultDiv.style.color = '#721c24';
-                    resultDiv.innerHTML = `❌ Error: ${data.message}`;
-                }
-            } catch (error) {
-                resultDiv.style.background = '#f8d7da';
-                resultDiv.style.color = '#721c24';
-                resultDiv.innerHTML = `❌ Network Error: ${error.message}`;
-            }
-        });
     </script>
 </body>
 </html>
