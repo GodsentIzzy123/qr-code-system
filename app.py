@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from datetime import datetime, timedelta, date
-from io import BytesIO, StringIO
+from io import BytesIO
 import qrcode
 import secrets
 import csv
@@ -13,30 +13,37 @@ app = Flask(__name__)
 tokens = {}
 tokens_lock = threading.Lock()
 
-# In-memory storage for attendance records
-attendance_records = []
-attendance_lock = threading.Lock()
+# CSV file to store attendance
+ATTENDANCE_FILE = "attendance.csv"
+
+# Ensure CSV with headers exists
+def ensure_csv():
+    file_exists = os.path.exists(ATTENDANCE_FILE)
+    if not file_exists or os.path.getsize(ATTENDANCE_FILE) == 0:
+        with open(ATTENDANCE_FILE, mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["First Name", "Last Name", "Student ID", "Timestamp"])
 
 def save_attendance(first_name, last_name, student_id):
-    """Save attendance to in-memory storage"""
-    with attendance_lock:
-        attendance_records.append({
-            'first_name': first_name,
-            'last_name': last_name,
-            'student_id': student_id,
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
-        print(f"✅ Attendance saved: {first_name} {last_name} ({student_id})")
-        return True
+    with open(ATTENDANCE_FILE, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow([
+            first_name,
+            last_name,
+            student_id,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ])
 
 def has_today_attendance(student_id):
-    """Check if student already has attendance for today"""
     today_str = date.today().strftime("%Y-%m-%d")
-    
-    with attendance_lock:
-        for record in attendance_records:
-            if record['student_id'] == student_id:
-                if record['timestamp'].startswith(today_str):
+    if not os.path.exists(ATTENDANCE_FILE):
+        return False
+    with open(ATTENDANCE_FILE, mode="r", newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row.get("Student ID") == student_id:
+                ts = row.get("Timestamp", "")
+                if ts.startswith(today_str):
                     return True
     return False
 
@@ -63,7 +70,7 @@ def submit_page(token):
     return send_file('submit.html', mimetype='text/html')
 
 @app.route('/admin')
-def admin_panel():
+def admin_page():
     return send_file('admin.html', mimetype='text/html')
 
 @app.route('/generate_qr', methods=['GET'])
@@ -113,62 +120,15 @@ def mark_attendance():
     if has_today_attendance(student_id):
         return jsonify({"status": "error", "message": "Attendance already recorded today"}), 409
 
-    try:
-        save_attendance(first_name, last_name, student_id)
-        return jsonify({"status": "success", "message": f"Attendance marked for {first_name} {last_name}"}), 200
-    except Exception as e:
-        print(f"Error saving attendance: {e}")
-        return jsonify({"status": "error", "message": f"Error saving attendance: {str(e)}"}), 500
+    save_attendance(first_name, last_name, student_id)
+    return jsonify({"status": "success", "message": f"Attendance marked for {first_name} {last_name}"}), 200
 
 @app.route('/attendance.csv', methods=['GET'])
 def download_attendance():
-    """Download attendance data as CSV from in-memory storage"""
-    try:
-        with attendance_lock:
-            if not attendance_records:
-                # Return empty CSV with headers if no data
-                csv_content = "First Name,Last Name,Student ID,Timestamp\n"
-            else:
-                # Convert to CSV format
-                csv_content = "First Name,Last Name,Student ID,Timestamp\n"
-                for record in attendance_records:
-                    csv_content += f"{record['first_name']},{record['last_name']},{record['student_id']},{record['timestamp']}\n"
-        
-        # Create CSV response
-        buffer = StringIO(csv_content)
-        buffer.seek(0)
-        
-        return send_file(
-            buffer,
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name=f'attendance_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        )
-        
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to download attendance: {str(e)}"}), 500
-
-@app.route('/clear-attendance', methods=['POST'])
-def clear_attendance():
-    """Clear all attendance records (useful after each class)"""
-    try:
-        with attendance_lock:
-            global attendance_records
-            attendance_records = []
-        return jsonify({"status": "success", "message": "Attendance records cleared"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to clear attendance: {str(e)}"}), 500
-
-@app.route('/attendance-count', methods=['GET'])
-def attendance_count():
-    """Get current attendance count"""
-    try:
-        with attendance_lock:
-            count = len(attendance_records)
-        return jsonify({"status": "success", "count": count, "message": f"Total attendance records: {count}"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to get count: {str(e)}"}), 500
+    ensure_csv()
+    return send_file(ATTENDANCE_FILE, mimetype='text/csv', as_attachment=True, download_name='attendance.csv')
 
 if __name__ == '__main__':
+    ensure_csv()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
