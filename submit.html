@@ -178,9 +178,48 @@
                 
                 if (response.ok) {
                     resultDiv.className = 'result success';
-                    resultDiv.textContent = `✅ ${data.message}`;
-                    // Clear form on success
-                    document.getElementById('attendanceForm').reset();
+                    resultDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <h3>✅ Attendance Marked Successfully!</h3>
+                            <p>${data.message}</p>
+                            <p style="font-size: 14px; color: #666; margin-top: 15px;">
+                                This form is now closed for security.<br>
+                                Each QR code can only be used once.
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Disable the entire form to prevent multiple submissions
+                    const form = document.getElementById('attendanceForm');
+                    const inputs = form.querySelectorAll('input');
+                    const submitBtn = document.getElementById('submitBtn');
+                    
+                    // Disable all inputs
+                    inputs.forEach(input => {
+                        input.disabled = true;
+                        input.style.backgroundColor = '#f5f5f5';
+                        input.style.color = '#999';
+                    });
+                    
+                    // Disable submit button
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '✅ Attendance Recorded';
+                    submitBtn.style.backgroundColor = '#6c757d';
+                    submitBtn.style.cursor = 'not-allowed';
+                    
+                    // Hide the form
+                    form.style.opacity = '0.5';
+                    
+                    // Add a security notice
+                    const securityNotice = document.createElement('div');
+                    securityNotice.style.cssText = 'background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; border: 1px solid #ffeaa7;';
+                    securityNotice.innerHTML = `
+                        <strong>🔒 Security Notice:</strong><br>
+                        This attendance form has been used and is now closed.<br>
+                        Each QR code can only be used once per student.
+                    `;
+                    form.parentNode.insertBefore(securityNotice, form.nextSibling);
+                    
                 } else {
                     resultDiv.className = 'result error';
                     resultDiv.textContent = `❌ ${data.message}`;
@@ -189,9 +228,11 @@
                 resultDiv.className = 'result error';
                 resultDiv.textContent = `❌ Network Error: ${error.message}`;
             } finally {
-                // Re-enable button
-                submitBtn.disabled = false;
-                submitBtn.textContent = '✅ Mark Attendance';
+                // Only re-enable button if there was an error
+                if (!response.ok) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '✅ Mark Attendance';
+                }
             }
         });
     </script>
