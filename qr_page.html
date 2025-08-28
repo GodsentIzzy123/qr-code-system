@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .qr-container {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        .qr-code {
+            max-width: 300px;
+            height: auto;
+        }
+        .instructions {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Attendance QR Code</h1>
+    
+    <div class="instructions">
+        <h3>How to mark your attendance:</h3>
+        <ol style="text-align: left;">
+            <li>Scan this QR code with your phone's camera</li>
+            <li>Copy the token (text) from the QR code</li>
+            <li>Send a POST request to: <code>http://127.0.0.1:5000/mark_attendance</code></li>
+            <li>Include your details: first_name, last_name, student_id, and the token</li>
+        </ol>
+    </div>
+
+    <div class="qr-container">
+        <h3>Current QR Code (Valid for 2 minutes)</h3>
+        <img id="qrImage" class="qr-code" src="/generate_qr" alt="QR Code">
+        <br><br>
+        <button class="refresh-btn" onclick="refreshQR()">🔄 Generate New QR Code</button>
+    </div>
+
+        <div class="instructions">
+        <h3>📱 How to Submit Attendance:</h3>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <h4>Step 1: Scan QR Code</h4>
+            <p>Use your phone camera to scan the QR code above. Copy the token text that appears.</p>
+            
+            <h4>Step 2: Submit on This Computer</h4>
+            <p>Fill out the form below with your details and paste the token from your phone.</p>
+        </div>
+        
+        <form id="attendanceForm" style="text-align: left;">
+            <div style="margin: 10px 0;">
+                <label for="firstName">First Name:</label><br>
+                <input type="text" id="firstName" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your first name">
+            </div>
+            <div style="margin: 10px 0;">
+                <label for="lastName">Last Name:</label><br>
+                <input type="text" id="lastName" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your last name">
+            </div>
+            <div style="margin: 10px 0;">
+                <label for="studentId">Student ID:</label><br>
+                <input type="text" id="studentId" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your student ID">
+            </div>
+            <div style="margin: 10px 0;">
+                <label for="token">QR Token (from phone scan):</label><br>
+                <input type="text" id="token" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Paste the token from your phone">
+            </div>
+            <button type="submit" style="background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px;">✅ Mark Attendance</button>
+        </form>
+        <div id="result" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Manual API Call (for developers):</h3>
+        <pre style="background: #333; color: #fff; padding: 10px; border-radius: 5px; text-align: left; font-size: 12px;">
+curl -X POST http://127.0.0.1:5000/mark_attendance \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe", 
+    "student_id": "S12345",
+    "token": "SCANNED_TOKEN_HERE"
+  }'</pre>
+    </div>
+
+    <script>
+        function refreshQR() {
+            const img = document.getElementById('qrImage');
+            img.src = '/generate_qr?' + new Date().getTime(); // Add timestamp to prevent caching
+        }
+        
+        // Auto-refresh QR code every 2 minutes
+        setInterval(refreshQR, 120000);
+
+        // Handle form submission
+        document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                student_id: document.getElementById('studentId').value,
+                token: document.getElementById('token').value
+            };
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '⏳ Submitting attendance...';
+            resultDiv.style.background = '#fff3cd';
+            resultDiv.style.color = '#856404';
+            
+            try {
+                const response = await fetch('/mark_attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.style.background = '#d4edda';
+                    resultDiv.style.color = '#155724';
+                    resultDiv.innerHTML = `✅ ${data.message}`;
+                    // Clear form on success
+                    document.getElementById('attendanceForm').reset();
+                } else {
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.style.color = '#721c24';
+                    resultDiv.innerHTML = `❌ Error: ${data.message}`;
+                }
+            } catch (error) {
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.innerHTML = `❌ Network Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

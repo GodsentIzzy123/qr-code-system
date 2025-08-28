@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial; padding: 20px; text-align: center; }
+        .success { color: green; font-size: 24px; }
+        .error { color: red; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <h1>📱 Mobile Connection Test</h1>
+    <div id="status">Testing connection...</div>
+    <br><br>
+    <a href="/" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to QR Code Page</a>
+    
+    <script>
+        fetch('/generate_qr')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = '<div class="success">✅ Connection successful! QR code system is working.</div>';
+                } else {
+                    document.getElementById('status').innerHTML = '<div class="error">❌ Server error: ' + response.status + '</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('status').innerHTML = '<div class="error">❌ Connection failed: ' + error.message + '</div>';
+            });
+    </script>
+</body>
+</html>
