@@ -65,31 +65,31 @@
         <div class="instructions">
         <h3>📱 How to Submit Attendance:</h3>
         <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <h4>Step 1: Scan QR Code</h4>
-            <p>Use your phone camera to scan the QR code above. Copy the token text that appears.</p>
+            <h4>Option 1: Scan QR Code (Opens Mobile Form)</h4>
+            <p>Scan the QR code with your phone camera. It should open a mobile-friendly form directly on your phone.</p>
             
-            <h4>Step 2: Submit on This Computer</h4>
-            <p>Fill out the form below with your details and paste the token from your phone.</p>
+            <h4>Option 2: Use This Page on Your Phone</h4>
+            <p>Students can visit this page directly on their phones and use the form below.</p>
         </div>
         
         <form id="attendanceForm" style="text-align: left;">
             <div style="margin: 10px 0;">
                 <label for="firstName">First Name:</label><br>
-                <input type="text" id="firstName" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your first name">
+                <input type="text" id="firstName" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your first name">
             </div>
             <div style="margin: 10px 0;">
                 <label for="lastName">Last Name:</label><br>
-                <input type="text" id="lastName" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your last name">
+                <input type="text" id="lastName" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your last name">
             </div>
             <div style="margin: 10px 0;">
                 <label for="studentId">Student ID:</label><br>
-                <input type="text" id="studentId" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Enter your student ID">
+                <input type="text" id="studentId" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Enter your student ID">
             </div>
             <div style="margin: 10px 0;">
                 <label for="token">QR Token (from phone scan):</label><br>
-                <input type="text" id="token" required style="width: 100%; padding: 8px; margin: 5px 0;" placeholder="Paste the token from your phone">
+                <input type="text" id="token" required style="width: 100%; padding: 12px; margin: 5px 0; font-size: 16px; box-sizing: border-box;" placeholder="Paste the token from your phone">
             </div>
-            <button type="submit" style="background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px;">✅ Mark Attendance</button>
+            <button type="submit" style="background: #28a745; color: white; padding: 15px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; width: 100%;">✅ Mark Attendance</button>
         </form>
         <div id="result" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
     </div>
